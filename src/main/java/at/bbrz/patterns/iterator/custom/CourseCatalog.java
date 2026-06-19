@@ -9,6 +9,24 @@ public final class CourseCatalog implements Iterable<CourseModule> {
         this.root = root;
     }
 
+    @Override
+    public Iterator<CourseModule> iterator() {
+        return depthFirstIterator();
+    }
+
+    public Iterator<CourseModule> depthFirstIterator() {
+        return new DepthFirstModuleIterator(root);
+    }
+
+    public Iterator<CourseModule> breadthFirstIterator() {
+        return new BreadthFirstModuleIterator(root);
+    }
+
+    public Iterator<CourseModule> lessonIterator() {
+        return new LeafLessonIterator(root);
+    }
+
+
     public static CourseCatalog sample() {
         CourseModule java = new CourseModule("Java Grundlagen")
                 .add(new CourseModule("Syntax"))
@@ -31,24 +49,4 @@ public final class CourseCatalog implements Iterable<CourseModule> {
         return new CourseCatalog(root);
     }
 
-    public CourseModule root() {
-        return root;
-    }
-
-    @Override
-    public Iterator<CourseModule> iterator() {
-        return depthFirstIterator();
-    }
-
-    public Iterator<CourseModule> depthFirstIterator() {
-        return new DepthFirstModuleIterator(root);
-    }
-
-    public Iterator<CourseModule> breadthFirstIterator() {
-        return new BreadthFirstModuleIterator(root);
-    }
-
-    public Iterator<CourseModule> lessonIterator() {
-        return new LeafLessonIterator(root);
-    }
 }
