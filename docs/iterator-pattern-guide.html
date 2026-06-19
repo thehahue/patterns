@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>Iterator Pattern in Java 21</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 16mm;
+        }
+
+        :root {
+            --ink: #18212f;
+            --muted: #5b6676;
+            --line: #c8d0dc;
+            --blue: #dbeafe;
+            --blue-strong: #2563eb;
+            --green: #dcfce7;
+            --green-strong: #16a34a;
+            --yellow: #fef3c7;
+            --yellow-strong: #ca8a04;
+            --red: #fee2e2;
+            --red-strong: #dc2626;
+            --panel: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font: 12.5px/1.45 Arial, Helvetica, sans-serif;
+            background: white;
+        }
+
+        h1, h2, h3 {
+            margin: 0;
+            line-height: 1.15;
+        }
+
+        h1 {
+            font-size: 34px;
+            letter-spacing: 0;
+        }
+
+        h2 {
+            margin-top: 24px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+            font-size: 21px;
+        }
+
+        h3 {
+            margin-top: 14px;
+            font-size: 15px;
+        }
+
+        p {
+            margin: 7px 0;
+        }
+
+        code {
+            font-family: "DejaVu Sans Mono", Consolas, monospace;
+            font-size: 11px;
+            background: #eef2f7;
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+
+        pre {
+            margin: 8px 0 0;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #0f172a;
+            color: #e5edf8;
+            white-space: pre-wrap;
+            font: 10.7px/1.45 "DejaVu Sans Mono", Consolas, monospace;
+        }
+
+        ul {
+            margin: 7px 0 0 18px;
+            padding: 0;
+        }
+
+        li {
+            margin: 3px 0;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .lead {
+            margin-top: 18px;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-left: 5px solid var(--blue-strong);
+            border-radius: 6px;
+            background: var(--panel);
+            font-size: 13px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 10px;
+            background: white;
+            break-inside: avoid;
+        }
+
+        .note {
+            color: var(--muted);
+            font-size: 11.5px;
+        }
+
+        .page-break {
+            break-before: page;
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            margin-top: 8px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .swatch {
+            width: 11px;
+            height: 11px;
+            border-radius: 3px;
+            border: 1px solid var(--line);
+        }
+
+        .blue { background: var(--blue); }
+        .green { background: var(--green); }
+        .yellow { background: var(--yellow); }
+        .red { background: var(--red); }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Iterator Pattern in Java 21</h1>
+    <p class="subtitle">Erkl&auml;rungen, Baumstruktur, Traversierungsschritte und Java-API-Beispiele</p>
+
+    <section class="lead">
+        Das Iterator Pattern trennt die Frage <strong>&bdquo;Wie laufe ich durch die Daten?&ldquo;</strong>
+        von der Frage <strong>&bdquo;Wie sind die Daten gespeichert?&ldquo;</strong>. Der Client arbeitet nur mit
+        <code>hasNext()</code> und <code>next()</code>. Die interne Struktur kann eine Liste, Queue, ein Stack,
+        ein Baum oder etwas Komplexeres sein.
+    </section>
+
+    <h2>1. Beispielstruktur: Kursbaum</h2>
+    <p>Alle eigenen Iteratoren arbeiten auf derselben Struktur. Nur die Traversierungslogik unterscheidet sich.</p>
+
+    <svg viewBox="0 0 760 360" role="img" aria-label="Kursbaum">
+        <defs>
+            <style>
+                .edge { stroke: #94a3b8; stroke-width: 2; fill: none; }
+                .node { stroke: #64748b; stroke-width: 1.4; rx: 8; }
+                .root { fill: #dbeafe; }
+                .group { fill: #fef3c7; }
+                .leaf { fill: #dcfce7; }
+                .label { font: 13px Arial, sans-serif; fill: #18212f; text-anchor: middle; dominant-baseline: middle; }
+            </style>
+        </defs>
+        <path class="edge" d="M380 55 L190 125 M380 55 L380 125 M380 55 L570 125" />
+        <path class="edge" d="M190 155 L95 220 M190 155 L190 275 M190 155 L285 220" />
+        <path class="edge" d="M380 155 L335 275 M380 155 L425 220" />
+        <path class="edge" d="M570 155 L525 275 M570 155 L615 220" />
+
+        <rect class="node root" x="270" y="25" width="220" height="42" />
+        <text class="label" x="380" y="46">BBRZ Softwarekurs</text>
+
+        <rect class="node group" x="105" y="115" width="170" height="42" />
+        <text class="label" x="190" y="136">Java Grundlagen</text>
+        <rect class="node group" x="295" y="115" width="170" height="42" />
+        <text class="label" x="380" y="136">Design Patterns</text>
+        <rect class="node group" x="500" y="115" width="140" height="42" />
+        <text class="label" x="570" y="136">Testing</text>
+
+        <rect class="node leaf" x="40" y="220" width="110" height="38" />
+        <text class="label" x="95" y="239">Syntax</text>
+        <rect class="node leaf" x="135" y="275" width="110" height="38" />
+        <text class="label" x="190" y="294">Collections</text>
+        <rect class="node leaf" x="230" y="220" width="110" height="38" />
+        <text class="label" x="285" y="239">Exceptions</text>
+
+        <rect class="node leaf" x="280" y="275" width="110" height="38" />
+        <text class="label" x="335" y="294">Iterator</text>
+        <rect class="node leaf" x="370" y="220" width="110" height="38" />
+        <text class="label" x="425" y="239">Strategy</text>
+
+        <rect class="node leaf" x="470" y="275" width="110" height="38" />
+        <text class="label" x="525" y="294">JUnit</text>
+        <rect class="node leaf" x="560" y="220" width="110" height="38" />
+        <text class="label" x="615" y="239">Mockito</text>
+    </svg>
+
+    <div class="legend">
+        <span><i class="swatch blue"></i>Wurzel</span>
+        <span><i class="swatch yellow"></i>Container-Modul</span>
+        <span><i class="swatch green"></i>Leaf/Lektion ohne Kinder</span>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Iterator-Vertrag</h3>
+            <pre>while (iterator.hasNext()) {
+    CourseModule module = iterator.next();
+}</pre>
+            <p>Der Client sieht nur den Iterator. Er kennt weder Baumstruktur noch Stack oder Queue.</p>
+        </div>
+        <div class="card">
+            <h3>Sammlung als Iterator-Fabrik</h3>
+            <pre>catalog.depthFirstIterator();
+catalog.breadthFirstIterator();
+catalog.lessonIterator();</pre>
+            <p>Dieselbe Sammlung kann verschiedene Iteratoren liefern.</p>
+        </div>
+    </div>
+
+    <h2 class="page-break">2. Depth-first Iterator: Stack</h2>
+    <p>
+        <code>DepthFirstModuleIterator</code> nutzt einen Stack. Ein Stack arbeitet nach
+        <strong>Last in, first out</strong>. Die Kinder werden r&uuml;ckw&auml;rts auf den Stack gelegt,
+        damit links zuerst verarbeitet wird.
+    </p>
+
+    <svg viewBox="0 0 760 395" role="img" aria-label="Depth-first Stack Schritte">
+        <defs>
+            <style>
+                .box { stroke: #64748b; stroke-width: 1.3; rx: 7; }
+                .step-title { font: bold 14px Arial, sans-serif; fill: #18212f; }
+                .small { font: 11px Arial, sans-serif; fill: #475569; }
+                .txt { font: 12px Arial, sans-serif; fill: #18212f; dominant-baseline: middle; }
+                .arrow { stroke: #2563eb; stroke-width: 2; marker-end: url(#arrow); }
+            </style>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#2563eb" />
+            </marker>
+        </defs>
+
+        <text class="step-title" x="30" y="30">1. Start</text>
+        <rect class="box" fill="#dbeafe" x="30" y="50" width="180" height="40" />
+        <text class="txt" x="45" y="71">Stack oben: BBRZ</text>
+
+        <line class="arrow" x1="220" y1="70" x2="285" y2="70" />
+
+        <text class="step-title" x="300" y="30">2. BBRZ poppen</text>
+        <rect class="box" fill="#dcfce7" x="300" y="50" width="180" height="40" />
+        <text class="txt" x="315" y="71">return BBRZ</text>
+        <text class="small" x="300" y="112">Kinder r&uuml;ckw&auml;rts pushen:</text>
+        <rect class="box" fill="#fef3c7" x="300" y="125" width="180" height="32" />
+        <text class="txt" x="315" y="141">Testing</text>
+        <rect class="box" fill="#fef3c7" x="300" y="160" width="180" height="32" />
+        <text class="txt" x="315" y="176">Design Patterns</text>
+        <rect class="box" fill="#fef3c7" x="300" y="195" width="180" height="32" />
+        <text class="txt" x="315" y="211">Java Grundlagen</text>
+        <text class="small" x="492" y="214">oben</text>
+
+        <line class="arrow" x1="500" y1="210" x2="565" y2="210" />
+
+        <text class="step-title" x="580" y="30">3. Java poppen</text>
+        <rect class="box" fill="#dcfce7" x="580" y="50" width="150" height="40" />
+        <text class="txt" x="595" y="71">return Java</text>
+        <text class="small" x="580" y="112">Kinder r&uuml;ckw&auml;rts pushen:</text>
+        <rect class="box" fill="#fef3c7" x="580" y="125" width="150" height="30" />
+        <text class="txt" x="595" y="140">Testing</text>
+        <rect class="box" fill="#fef3c7" x="580" y="158" width="150" height="30" />
+        <text class="txt" x="595" y="173">Design Patterns</text>
+        <rect class="box" fill="#dcfce7" x="580" y="191" width="150" height="30" />
+        <text class="txt" x="595" y="206">Exceptions</text>
+        <rect class="box" fill="#dcfce7" x="580" y="224" width="150" height="30" />
+        <text class="txt" x="595" y="239">Collections</text>
+        <rect class="box" fill="#dcfce7" x="580" y="257" width="150" height="30" />
+        <text class="txt" x="595" y="272">Syntax</text>
+        <text class="small" x="740" y="274">oben</text>
+
+        <rect class="box" fill="#f8fafc" x="30" y="315" width="700" height="48" />
+        <text class="txt" x="45" y="334">Ausgabe-Reihenfolge:</text>
+        <text class="txt" x="45" y="354">BBRZ, Java Grundlagen, Syntax, Collections, Exceptions, Design Patterns, Iterator, Strategy, Testing, JUnit, Mockito</text>
+    </svg>
+
+    <pre>CourseModule current = stack.pop();
+List&lt;CourseModule&gt; children = current.children();
+for (int i = children.size() - 1; i &gt;= 0; i--) {
+    stack.push(children.get(i));
+}
+return current;</pre>
+
+    <h2>3. Breadth-first Iterator: Queue</h2>
+    <p>
+        <code>BreadthFirstModuleIterator</code> nutzt eine Queue. Eine Queue arbeitet nach
+        <strong>First in, first out</strong>. Dadurch werden zuerst alle Module einer Ebene verarbeitet.
+    </p>
+
+    <svg viewBox="0 0 760 365" role="img" aria-label="Breadth-first Queue Schritte">
+        <defs>
+            <style>
+                .qbox { stroke: #64748b; stroke-width: 1.3; rx: 7; }
+                .qtitle { font: bold 14px Arial, sans-serif; fill: #18212f; }
+                .qtxt { font: 12px Arial, sans-serif; fill: #18212f; dominant-baseline: middle; }
+                .qsmall { font: 11px Arial, sans-serif; fill: #475569; }
+                .qarrow { stroke: #16a34a; stroke-width: 2; marker-end: url(#qarrow); }
+            </style>
+            <marker id="qarrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#16a34a" />
+            </marker>
+        </defs>
+
+        <text class="qtitle" x="30" y="28">1. Start</text>
+        <rect class="qbox" fill="#dbeafe" x="30" y="48" width="180" height="36" />
+        <text class="qtxt" x="45" y="66">Queue vorne: BBRZ</text>
+
+        <line class="qarrow" x1="225" y1="66" x2="285" y2="66" />
+
+        <text class="qtitle" x="300" y="28">2. BBRZ entfernen</text>
+        <rect class="qbox" fill="#dcfce7" x="300" y="48" width="170" height="36" />
+        <text class="qtxt" x="315" y="66">return BBRZ</text>
+        <text class="qsmall" x="300" y="105">Kinder hinten anh&auml;ngen:</text>
+        <rect class="qbox" fill="#fef3c7" x="300" y="122" width="130" height="34" />
+        <text class="qtxt" x="315" y="139">Java</text>
+        <rect class="qbox" fill="#fef3c7" x="435" y="122" width="130" height="34" />
+        <text class="qtxt" x="450" y="139">Patterns</text>
+        <rect class="qbox" fill="#fef3c7" x="570" y="122" width="130" height="34" />
+        <text class="qtxt" x="585" y="139">Testing</text>
+        <text class="qsmall" x="300" y="176">vorne</text>
+        <text class="qsmall" x="672" y="176">hinten</text>
+
+        <line class="qarrow" x1="365" y1="205" x2="365" y2="245" />
+
+        <text class="qtitle" x="30" y="245">3. Java entfernen</text>
+        <rect class="qbox" fill="#dcfce7" x="30" y="265" width="150" height="34" />
+        <text class="qtxt" x="45" y="282">return Java</text>
+        <rect class="qbox" fill="#fef3c7" x="200" y="265" width="105" height="34" />
+        <text class="qtxt" x="215" y="282">Patterns</text>
+        <rect class="qbox" fill="#fef3c7" x="310" y="265" width="105" height="34" />
+        <text class="qtxt" x="325" y="282">Testing</text>
+        <rect class="qbox" fill="#dcfce7" x="420" y="265" width="90" height="34" />
+        <text class="qtxt" x="435" y="282">Syntax</text>
+        <rect class="qbox" fill="#dcfce7" x="515" y="265" width="110" height="34" />
+        <text class="qtxt" x="530" y="282">Collections</text>
+        <rect class="qbox" fill="#dcfce7" x="630" y="265" width="100" height="34" />
+        <text class="qtxt" x="645" y="282">Exceptions</text>
+
+        <rect class="qbox" fill="#f8fafc" x="30" y="320" width="700" height="34" />
+        <text class="qtxt" x="45" y="337">Ausgabe: BBRZ, Java Grundlagen, Design Patterns, Testing, Syntax, Collections, Exceptions, Iterator, Strategy, JUnit, Mockito</text>
+    </svg>
+
+    <pre>CourseModule current = queue.remove();
+queue.addAll(current.children());
+return current;</pre>
+
+    <h2 class="page-break">4. LeafLessonIterator: Iterator als Filter</h2>
+    <p>
+        <code>LeafLessonIterator</code> durchl&auml;uft intern alle Module, gibt aber nur Bl&auml;tter zur&uuml;ck.
+        Ein Blatt ist hier eine Lektion ohne Kinder. Der Iterator nutzt daf&uuml;r einen anderen Iterator als Quelle.
+    </p>
+
+    <svg viewBox="0 0 760 300" role="img" aria-label="LeafLessonIterator Filter">
+        <defs>
+            <style>
+                .fbox { stroke: #64748b; stroke-width: 1.3; rx: 8; }
+                .ftxt { font: 12px Arial, sans-serif; fill: #18212f; dominant-baseline: middle; }
+                .ftitle { font: bold 14px Arial, sans-serif; fill: #18212f; }
+                .fsmall { font: 11px Arial, sans-serif; fill: #475569; }
+                .farr { stroke: #2563eb; stroke-width: 2; marker-end: url(#farr); }
+            </style>
+            <marker id="farr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#2563eb" />
+            </marker>
+        </defs>
+
+        <text class="ftitle" x="35" y="30">Interner Iterator liefert alle Module</text>
+        <rect class="fbox" fill="#fef3c7" x="35" y="52" width="125" height="34" />
+        <text class="ftxt" x="50" y="69">BBRZ</text>
+        <rect class="fbox" fill="#fef3c7" x="170" y="52" width="125" height="34" />
+        <text class="ftxt" x="185" y="69">Java</text>
+        <rect class="fbox" fill="#dcfce7" x="305" y="52" width="125" height="34" />
+        <text class="ftxt" x="320" y="69">Syntax</text>
+        <rect class="fbox" fill="#dcfce7" x="440" y="52" width="125" height="34" />
+        <text class="ftxt" x="455" y="69">Collections</text>
+        <rect class="fbox" fill="#dcfce7" x="575" y="52" width="125" height="34" />
+        <text class="ftxt" x="590" y="69">Exceptions</text>
+
+        <line class="farr" x1="365" y1="98" x2="365" y2="138" />
+
+        <rect class="fbox" fill="#dbeafe" x="245" y="145" width="240" height="54" />
+        <text class="ftxt" x="270" y="166">advance(): &uuml;berspringt Container</text>
+        <text class="fsmall" x="270" y="186">candidate.isLesson() == true</text>
+
+        <line class="farr" x1="365" y1="210" x2="365" y2="245" />
+
+        <text class="ftitle" x="35" y="270">Ausgabe</text>
+        <rect class="fbox" fill="#dcfce7" x="105" y="250" width="105" height="34" />
+        <text class="ftxt" x="120" y="267">Syntax</text>
+        <rect class="fbox" fill="#dcfce7" x="220" y="250" width="120" height="34" />
+        <text class="ftxt" x="235" y="267">Collections</text>
+        <rect class="fbox" fill="#dcfce7" x="350" y="250" width="115" height="34" />
+        <text class="ftxt" x="365" y="267">Exceptions</text>
+        <rect class="fbox" fill="#dcfce7" x="475" y="250" width="90" height="34" />
+        <text class="ftxt" x="490" y="267">Iterator</text>
+        <rect class="fbox" fill="#dcfce7" x="575" y="250" width="95" height="34" />
+        <text class="ftxt" x="590" y="267">Strategy</text>
+    </svg>
+
+    <pre>private void advance() {
+    nextLesson = null;
+    while (modules.hasNext() &amp;&amp; nextLesson == null) {
+        CourseModule candidate = modules.next();
+        if (candidate.isLesson()) {
+            nextLesson = candidate;
+        }
+    }
+}</pre>
+
+    <p>
+        Der Basis-Iterator kann Depth-first oder Breadth-first sein. Der Filter bleibt gleich:
+        Nur <code>CourseModule</code>-Objekte ohne Kinder werden ausgegeben.
+    </p>
+
+    <h2>5. Scanner: Iterator &uuml;ber Tokens</h2>
+    <p>
+        <code>Scanner</code> ist kein klassischer Collection-Iterator, verwendet aber dieselbe Grundidee:
+        <code>hasNext()</code> fragt, ob noch ein Token vorhanden ist; <code>next()</code> liefert es.
+    </p>
+
+    <svg viewBox="0 0 760 170" role="img" aria-label="Scanner Token Iterator">
+        <defs>
+            <style>
+                .sbox { stroke: #64748b; stroke-width: 1.3; rx: 7; }
+                .stxt { font: 12px Arial, sans-serif; fill: #18212f; dominant-baseline: middle; text-anchor: middle; }
+                .stitle { font: bold 14px Arial, sans-serif; fill: #18212f; }
+                .sarr { stroke: #2563eb; stroke-width: 2; marker-end: url(#sarr); }
+            </style>
+            <marker id="sarr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#2563eb" />
+            </marker>
+        </defs>
+        <text class="stitle" x="30" y="28">Quelle</text>
+        <rect class="sbox" fill="#f8fafc" x="30" y="48" width="215" height="40" />
+        <text class="stxt" x="137" y="68">"java iterator pattern"</text>
+        <line class="sarr" x1="255" y1="68" x2="315" y2="68" />
+        <rect class="sbox" fill="#dbeafe" x="325" y="48" width="110" height="40" />
+        <text class="stxt" x="380" y="68">Scanner</text>
+        <line class="sarr" x1="445" y1="68" x2="505" y2="68" />
+        <rect class="sbox" fill="#dcfce7" x="515" y="35" width="80" height="34" />
+        <text class="stxt" x="555" y="52">java</text>
+        <rect class="sbox" fill="#dcfce7" x="605" y="35" width="80" height="34" />
+        <text class="stxt" x="645" y="52">iterator</text>
+        <rect class="sbox" fill="#dcfce7" x="560" y="85" width="80" height="34" />
+        <text class="stxt" x="600" y="102">pattern</text>
+    </svg>
+
+    <pre>while (scanner.hasNext()) {
+    tokens.add(scanner.next());
+}</pre>
+
+    <h2 class="page-break">6. Spliterator: Durchlauf aufteilen</h2>
+    <p>
+        <code>Spliterator</code> steht f&uuml;r <strong>split + iterator</strong>. Er kann Elemente durchlaufen
+        und den noch offenen Durchlaufbereich mit <code>trySplit()</code> aufteilen. Die Liste selbst wird dabei
+        nicht ver&auml;ndert.
+    </p>
+
+    <svg viewBox="0 0 760 300" role="img" aria-label="Spliterator Aufteilung">
+        <defs>
+            <style>
+                .spbox { stroke: #64748b; stroke-width: 1.3; rx: 7; }
+                .sptxt { font: 12px Arial, sans-serif; fill: #18212f; dominant-baseline: middle; text-anchor: middle; }
+                .sptitle { font: bold 14px Arial, sans-serif; fill: #18212f; }
+                .spsmall { font: 11px Arial, sans-serif; fill: #475569; }
+                .sparr { stroke: #2563eb; stroke-width: 2; marker-end: url(#sparr); }
+            </style>
+            <marker id="sparr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#2563eb" />
+            </marker>
+        </defs>
+
+        <text class="sptitle" x="30" y="30">Liste bleibt unver&auml;ndert</text>
+        <rect class="spbox" fill="#f8fafc" x="30" y="50" width="70" height="40" />
+        <text class="sptxt" x="65" y="70">A</text>
+        <rect class="spbox" fill="#f8fafc" x="105" y="50" width="70" height="40" />
+        <text class="sptxt" x="140" y="70">B</text>
+        <rect class="spbox" fill="#f8fafc" x="180" y="50" width="70" height="40" />
+        <text class="sptxt" x="215" y="70">C</text>
+        <rect class="spbox" fill="#f8fafc" x="255" y="50" width="70" height="40" />
+        <text class="sptxt" x="290" y="70">D</text>
+
+        <line class="sparr" x1="365" y1="70" x2="445" y2="70" />
+        <text class="spsmall" x="365" y="58">trySplit()</text>
+
+        <text class="sptitle" x="470" y="30">Durchlaufbereiche</text>
+        <rect class="spbox" fill="#dbeafe" x="470" y="50" width="210" height="45" />
+        <text class="sptxt" x="575" y="72">leftPart: A, B</text>
+        <rect class="spbox" fill="#fee2e2" x="470" y="110" width="210" height="45" />
+        <text class="sptxt" x="575" y="132">rightPart: C, D</text>
+
+        <text class="sptitle" x="30" y="205">Ergebnis im Beispiel</text>
+        <rect class="spbox" fill="#dbeafe" x="30" y="225" width="130" height="38" />
+        <text class="sptxt" x="95" y="244">left-A</text>
+        <rect class="spbox" fill="#dbeafe" x="170" y="225" width="130" height="38" />
+        <text class="sptxt" x="235" y="244">left-B</text>
+        <rect class="spbox" fill="#fee2e2" x="310" y="225" width="130" height="38" />
+        <text class="sptxt" x="375" y="244">right-C</text>
+        <rect class="spbox" fill="#fee2e2" x="450" y="225" width="130" height="38" />
+        <text class="sptxt" x="515" y="244">right-D</text>
+    </svg>
+
+    <pre>Spliterator&lt;String&gt; rightPart = Arrays.asList("A", "B", "C", "D").spliterator();
+Spliterator&lt;String&gt; leftPart = rightPart.trySplit();</pre>
+
+    <p class="note">
+        Wichtig: <code>trySplit()</code> garantiert nicht allgemein eine perfekte Halbierung.
+        Bei geordneten Listen ist die zur&uuml;ckgegebene Teilmenge typischerweise der vordere Bereich.
+    </p>
+
+    <h2>7. Warum Java Iteratoren stark nutzt</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>Vorteile</h3>
+            <ul>
+                <li>Die interne Datenstruktur bleibt verborgen.</li>
+                <li>Der Client-Code bleibt einheitlich.</li>
+                <li>Traversierungslogik ist austauschbar.</li>
+                <li>Mehrere Iteratoren k&ouml;nnen unabh&auml;ngig &uuml;ber dieselbe Sammlung laufen.</li>
+                <li>Filter-Iteratoren k&ouml;nnen bestehende Iteratoren wiederverwenden.</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Java-Beispiele</h3>
+            <ul>
+                <li><code>Collection.iterator()</code> f&uuml;r Listen, Sets und Queues.</li>
+                <li><code>Iterable</code> als Basis f&uuml;r die Enhanced-for-Schleife.</li>
+                <li><code>ListIterator</code> f&uuml;r Vorw&auml;rts- und R&uuml;ckw&auml;rtsbewegung.</li>
+                <li><code>Scanner</code> f&uuml;r Token-f&uuml;r-Token-Verarbeitung.</li>
+                <li><code>Spliterator</code> als Basis f&uuml;r Streams und Aufteilung.</li>
+            </ul>
+        </div>
+    </div>
+
+    <svg viewBox="0 0 760 210" role="img" aria-label="Java Iterator API Ueberblick">
+        <defs>
+            <style>
+                .jbox { stroke: #64748b; stroke-width: 1.3; rx: 8; }
+                .jtxt { font: 12px Arial, sans-serif; fill: #18212f; dominant-baseline: middle; text-anchor: middle; }
+                .jtitle { font: bold 14px Arial, sans-serif; fill: #18212f; }
+                .jarr { stroke: #64748b; stroke-width: 2; marker-end: url(#jarr); }
+            </style>
+            <marker id="jarr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#64748b" />
+            </marker>
+        </defs>
+
+        <text class="jtitle" x="30" y="30">Gemeinsame Idee</text>
+        <rect class="jbox" fill="#dbeafe" x="280" y="20" width="200" height="42" />
+        <text class="jtxt" x="380" y="41">Elemente Schritt f&uuml;r Schritt</text>
+
+        <line class="jarr" x1="380" y1="70" x2="165" y2="110" />
+        <line class="jarr" x1="380" y1="70" x2="310" y2="110" />
+        <line class="jarr" x1="380" y1="70" x2="455" y2="110" />
+        <line class="jarr" x1="380" y1="70" x2="600" y2="110" />
+
+        <rect class="jbox" fill="#dcfce7" x="75" y="115" width="170" height="42" />
+        <text class="jtxt" x="160" y="136">Iterator</text>
+        <rect class="jbox" fill="#dcfce7" x="260" y="115" width="170" height="42" />
+        <text class="jtxt" x="345" y="136">Iterable / for-each</text>
+        <rect class="jbox" fill="#fef3c7" x="445" y="115" width="150" height="42" />
+        <text class="jtxt" x="520" y="136">Scanner</text>
+        <rect class="jbox" fill="#fee2e2" x="610" y="115" width="120" height="42" />
+        <text class="jtxt" x="670" y="136">Spliterator</text>
+    </svg>
+</main>
+</body>
+</html>
