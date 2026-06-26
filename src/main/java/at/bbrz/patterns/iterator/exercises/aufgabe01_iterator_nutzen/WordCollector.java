@@ -11,10 +11,11 @@ public final class WordCollector {
     public static List<String> collectUppercase(List<String> words) {
         List<String> result = new ArrayList<>();
 
-        // TODO: Verwende words.iterator(), hasNext() und next().
-        // Jedes Wort soll in Grossbuchstaben in result eingefuegt werden.
-        throw new UnsupportedOperationException("TODO: Iterator explizit verwenden");
+        Iterator<String> iterator = words.iterator();
+        while (iterator.hasNext()) {
+            result.add(iterator.next().toUpperCase());
+        }
 
-        // return result;
+        return result;
     }
 }

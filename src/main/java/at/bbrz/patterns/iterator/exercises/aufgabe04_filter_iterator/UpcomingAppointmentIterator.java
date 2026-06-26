@@ -18,20 +18,28 @@ public final class UpcomingAppointmentIterator implements Iterator<Appointment> 
 
     @Override
     public boolean hasNext() {
-        // TODO: Gib zurueck, ob bereits ein passender Termin vorbereitet ist.
-        throw new UnsupportedOperationException("TODO: hasNext implementieren");
+        return nextAppointment != null;
     }
 
     @Override
     public Appointment next() {
-        // TODO: Wenn hasNext() false ist, wirf eine NoSuchElementException.
-        // TODO: Merke den vorbereiteten Termin, suche den naechsten und gib den gemerkten Termin zurueck.
-        throw new UnsupportedOperationException("TODO: next implementieren");
+        if (!hasNext()) {
+            throw new NoSuchElementException();
+        }
+
+        Appointment result = nextAppointment;
+        advance();
+        return result;
     }
 
     private void advance() {
         nextAppointment = null;
 
-        // TODO: Lies aus source, bis ein nicht abgesagter Termin ab startDate gefunden wurde.
+        while (source.hasNext() && nextAppointment == null) {
+            Appointment candidate = source.next();
+            if (!candidate.cancelled() && candidate.isOnOrAfter(startDate)) {
+                nextAppointment = candidate;
+            }
+        }
     }
 }

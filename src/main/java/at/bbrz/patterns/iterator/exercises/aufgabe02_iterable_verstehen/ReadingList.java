@@ -19,8 +19,7 @@ public final class ReadingList implements Iterable<Book> {
 
     @Override
     public Iterator<Book> iterator() {
-        // TODO: Gib den Iterator der internen Liste zurueck.
-        throw new UnsupportedOperationException("TODO: Iterable implementieren");
+        return books.iterator();
     }
 
     public static ReadingList sample() {
