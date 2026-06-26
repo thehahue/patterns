@@ -41,7 +41,7 @@ public final class CourseCatalog implements Iterable<CourseModule> {
                 .add(new CourseModule("JUnit"))
                 .add(new CourseModule("Mockito"));
 
-        CourseModule root = new CourseModule("BBRZ Dev")
+        CourseModule root = new CourseModule("BBRZ Softwarekurs")
                 .add(java)
                 .add(patterns)
                 .add(testing);
